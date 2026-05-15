@@ -65,15 +65,44 @@
     background: #1a2b3c; color: #7fb3ff;
   }
   .badge.music { background: #1a2e2e; color: #6ee7b7; }
+  .badge.nature { background: #1e2e1a; color: #a3e635; }
+
+  .active-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent2);
+    display: inline-block; margin-left: 6px; opacity: 0; transition: opacity .2s;
+  }
+  .active-dot.on { opacity: 1; }
+
+  .mixer { background: var(--card); border: 1px solid #1a1c23; border-radius: var(--radius); padding: 14px 18px; margin-bottom: 18px; }
+  .mixer h4 { margin: 0 0 10px; font-size: 0.95rem; }
+  .mixer-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .mixer-item { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); }
+  .mixer-dot { width: 7px; height: 7px; border-radius: 50%; background: #334; }
+  .mixer-dot.on { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+
+  .timer-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
 
   footer { margin-top: 28px; color: var(--muted); font-size: 0.82rem; text-align: center; }
-  .hidden { display: none; }
+
+  /* sequencer grid for beat patterns */
+  .seq-grid {
+    display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px;
+    margin-top: 6px;
+  }
+  .seq-cell {
+    aspect-ratio: 1; border-radius: 3px; background: #1a1d25;
+    transition: background .15s;
+  }
+  .seq-cell.on { background: var(--accent); }
+  .seq-cell.beat { background: #2a2e3a; }
+
+  .small { font-size: 0.8rem; color: var(--muted); }
 </style>
 </head>
 <body>
 
 <h1>Hermes Agent Music</h1>
-<div class="subtitle">Procedural ambient sounds &amp; beats for coders. All generated live in your browser with the Web Audio API. No downloads, no samples.</div>
+<div class="subtitle">Procedural ambient sounds, nature, and beats for coders. All generated live in your browser. No downloads, no samples.</div>
 
 <div class="topbar">
   <button id="btnStart" class="btn">Start Audio Engine</button>
@@ -81,10 +110,24 @@
   <span class="status" id="masterStatus">Audio context not started</span>
 </div>
 
+<div class="mixer">
+  <h4>Mixer — Active Scenes</h4>
+  <div class="mixer-row" id="mixerRow"></div>
+  <div class="timer-row">
+    <span class="small">Sleep timer:</span>
+    <button class="btn secondary" id="timerOff" style="padding:6px 10px;font-size:0.82rem">Off</button>
+    <button class="btn secondary" id="timer15" style="padding:6px 10px;font-size:0.82rem">15m</button>
+    <button class="btn secondary" id="timer30" style="padding:6px 10px;font-size:0.82rem">30m</button>
+    <button class="btn secondary" id="timer60" style="padding:6px 10px;font-size:0.82rem">60m</button>
+    <span class="small" id="timerStatus"></span>
+  </div>
+</div>
+
 <div class="grid">
 
+  <!-- WEATHER -->
   <div class="card">
-    <h3>Rain <span class="badge">weather</span></h3>
+    <h3>Rain <span class="badge">weather</span><span class="active-dot" data-dot="rain"></span></h3>
     <p>Filtered brown noise with soft high-end drizzle. Gentle, steady, good for long sessions.</p>
     <div class="controls">
       <button class="btn secondary" data-scene="rain">Play</button>
@@ -94,17 +137,17 @@
   </div>
 
   <div class="card">
-    <h3>Thunder <span class="badge">weather</span></h3>
+    <h3>Thunder <span class="badge">weather</span><span class="active-dot" data-dot="thunder"></span></h3>
     <p>Deep rumble bursts with sub-bass energy. Randomized timing, long decay.</p>
     <div class="controls">
       <button class="btn secondary" data-scene="thunder">Play</button>
-      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="60" data-vol="thunder"></div>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="55" data-vol="thunder"></div>
     </div>
     <div class="status" data-status="thunder">Off</div>
   </div>
 
   <div class="card">
-    <h3>Wind <span class="badge">weather</span></h3>
+    <h3>Wind <span class="badge">weather</span><span class="active-dot" data-dot="wind"></span></h3>
     <p>Howling band-passed noise with slow amplitude swells. Eerie and spacious.</p>
     <div class="controls">
       <button class="btn secondary" data-scene="wind">Play</button>
@@ -114,7 +157,7 @@
   </div>
 
   <div class="card">
-    <h3>Ocean <span class="badge">weather</span></h3>
+    <h3>Ocean <span class="badge">weather</span><span class="active-dot" data-dot="ocean"></span></h3>
     <p>Filtered pink noise with slow crashing cycles. Simulates waves on a shoreline.</p>
     <div class="controls">
       <button class="btn secondary" data-scene="ocean">Play</button>
@@ -124,7 +167,7 @@
   </div>
 
   <div class="card">
-    <h3>Fire <span class="badge">weather</span></h3>
+    <h3>Fire <span class="badge">weather</span><span class="active-dot" data-dot="fire"></span></h3>
     <p>Crackling bursts mixed with warm low-end noise. Campfire vibes, runs forever.</p>
     <div class="controls">
       <button class="btn secondary" data-scene="fire">Play</button>
@@ -133,8 +176,50 @@
     <div class="status" data-status="fire">Off</div>
   </div>
 
+  <!-- NATURE -->
   <div class="card">
-    <h3>Drone Pad <span class="badge music">music</span></h3>
+    <h3>Night Crickets <span class="badge nature">nature</span><span class="active-dot" data-dot="crickets"></span></h3>
+    <p>Chirping pulse waves at night frequency. Rhythmic, hypnotic, good for deep work.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="crickets">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="45" data-vol="crickets"></div>
+    </div>
+    <div class="status" data-status="crickets">Off</div>
+  </div>
+
+  <div class="card">
+    <h3>Forest Birds <span class="badge nature">nature</span><span class="active-dot" data-dot="birds"></span></h3>
+    <p>Random high-pitched chirps with reverb tail. Light, airy, morning energy.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="birds">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="50" data-vol="birds"></div>
+    </div>
+    <div class="status" data-status="birds">Off</div>
+  </div>
+
+  <div class="card">
+    <h3>Stream <span class="badge nature">nature</span><span class="active-dot" data-dot="stream"></span></h3>
+    <p>Bubbling water texture — fast modulation on band-passed noise. Fresh and flowing.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="stream">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="50" data-vol="stream"></div>
+    </div>
+    <div class="status" data-status="stream">Off</div>
+  </div>
+
+  <div class="card">
+    <h3>Snow <span class="badge nature">nature</span><span class="active-dot" data-dot="snow"></span></h3>
+    <p>Ultra-quiet filtered noise with occasional crisp crackle. Cold, still, vast.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="snow">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="65" data-vol="snow"></div>
+    </div>
+    <div class="status" data-status="snow">Off</div>
+  </div>
+
+  <!-- MUSIC / DRONES -->
+  <div class="card">
+    <h3>Drone Pad <span class="badge music">music</span><span class="active-dot" data-dot="drone"></span></h3>
     <p>Four detuned oscillators creating a slowly beating ambient pad. Deep and meditative.</p>
     <div class="controls">
       <button class="btn secondary" data-scene="drone">Play</button>
@@ -144,27 +229,7 @@
   </div>
 
   <div class="card">
-    <h3>Binaural Beat <span class="badge music">music</span></h3>
-    <p>Left ear at 200 Hz, right at 205 Hz. 5 Hz theta difference for focus or relaxation.</p>
-    <div class="controls">
-      <button class="btn secondary" data-scene="binaural">Play</button>
-      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="30" data-vol="binaural"></div>
-    </div>
-    <div class="status" data-status="binaural">Off</div>
-  </div>
-
-  <div class="card">
-    <h3>Soft Beat <span class="badge music">music</span></h3>
-    <p>Gentle kick and hi-hat loop at 80 BPM with a warm pad underneath. Minimal, smooth.</p>
-    <div class="controls">
-      <button class="btn secondary" data-scene="softbeat">Play</button>
-      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="50" data-vol="softbeat"></div>
-    </div>
-    <div class="status" data-status="softbeat">Off</div>
-  </div>
-
-  <div class="card">
-    <h3>Space Drone <span class="badge music">music</span></h3>
+    <h3>Space Drone <span class="badge music">music</span><span class="active-dot" data-dot="space"></span></h3>
     <p>Very low sub-oscillators with slow filter sweeps. Deep space, long sustain.</p>
     <div class="controls">
       <button class="btn secondary" data-scene="space">Play</button>
@@ -173,11 +238,73 @@
     <div class="status" data-status="space">Off</div>
   </div>
 
+  <div class="card">
+    <h3>Binaural Beat <span class="badge music">music</span><span class="active-dot" data-dot="binaural"></span></h3>
+    <p>Left ear at 200 Hz, right at 205 Hz. 5 Hz theta difference for focus or relaxation.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="binaural">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="30" data-vol="binaural"></div>
+    </div>
+    <div class="status" data-status="binaural">Off</div>
+  </div>
+
+  <!-- GENERATIVE MUSIC -->
+  <div class="card">
+    <h3>Arpeggio Dream <span class="badge music">music</span><span class="active-dot" data-dot="arpeggio"></span></h3>
+    <p>Random pentatonic arpeggios with echo delay. Never repeats the same phrase twice.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="arpeggio">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="40" data-vol="arpeggio"></div>
+    </div>
+    <div class="status" data-status="arpeggio">Off</div>
+  </div>
+
+  <div class="card">
+    <h3>Piano Drift <span class="badge music">music</span><span class="active-dot" data-dot="pianodrift"></span></h3>
+    <p>Slow random piano-like notes with long release and subtle reverb. Contemplative.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="pianodrift">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="45" data-vol="pianodrift"></div>
+    </div>
+    <div class="status" data-status="pianodrift">Off</div>
+  </div>
+
+  <!-- BEATS -->
+  <div class="card">
+    <h3>Lo-Fi Beat <span class="badge music">music</span><span class="active-dot" data-dot="lofi"></span></h3>
+    <p>Chill hop: soft kick, brushed snare, vinyl crackle, jazzy chord stabs. 75 BPM.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="lofi">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="50" data-vol="lofi"></div>
+    </div>
+    <div class="status" data-status="lofi">Off</div>
+  </div>
+
+  <div class="card">
+    <h3>Deep House <span class="badge music">music</span><span class="active-dot" data-dot="house"></span></h3>
+    <p>Four-on-floor kick, open hat, rolling bassline, warm pad chords. 124 BPM.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="house">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="50" data-vol="house"></div>
+    </div>
+    <div class="status" data-status="house">Off</div>
+  </div>
+
+  <div class="card">
+    <h3>Techno Drive <span class="badge music">music</span><span class="active-dot" data-dot="techno"></span></h3>
+    <p>Hard kick, closed hat, industrial noise percussion, distorted bass. 130 BPM.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="techno">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="50" data-vol="techno"></div>
+    </div>
+    <div class="status" data-status="techno">Off</div>
+  </div>
+
 </div>
 
 <footer>
-  Built by Hermes Agent. Pure Web Audio API — no samples, no external files. Runs offline. <br>
-  Tip: Lower your system volume before first play.
+  Built by Hermes Agent. Pure Web Audio API — no samples, no files. Works offline. <br>
+  Shortcuts: 1-9 = first 9 scenes, 0 = stop all. Lower system volume before first play.
 </footer>
 
 <script>
@@ -186,7 +313,9 @@
   const AC = window.AudioContext || window.webkitAudioContext;
   let ctx = null;
   let masterGain = null;
-  const active = {}; // scene -> { gain, nodes[], interval/timeout ids }
+  const active = {};
+  let timerId = null;
+  const SCENES = ['rain','thunder','wind','ocean','fire','crickets','birds','stream','snow','drone','space','binaural','arpeggio','pianodrift','lofi','house','techno'];
 
   const $ = q => document.querySelector(q);
   const $$ = q => Array.from(document.querySelectorAll(q));
@@ -207,9 +336,10 @@
     try { s.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.3); } catch(e){}
     setTimeout(() => {
       if (s.nodes) s.nodes.forEach(n => { try { if (n.stop) n.stop(); n.disconnect(); } catch(e){} });
-      if (s.timers) s.timers.forEach(t => clearInterval(t));
+      if (s.timers) s.timers.forEach(t => clearTimeout(t));
       delete active[name];
       updateUI(name, false);
+      renderMixer();
     }, 400);
   }
 
@@ -219,118 +349,103 @@
     const vol = parseFloat($('input[data-vol="'+name+'"]').value) / 100;
     const g = ctx.createGain();
     g.connect(masterGain);
-    g.gain.value = vol;
+    g.gain.value = 0; // fade in
+    g.gain.setTargetAtTime(vol, ctx.currentTime, 0.3);
     const nodes = [];
     const timers = [];
     active[name] = { gain: g, nodes, timers };
     updateUI(name, true);
+    renderMixer();
 
-    const t = ctx.currentTime;
+    const t0 = ctx.currentTime;
+
+    // utility: noise buffer
+    function noiseBuffer(sec) {
+      const b = ctx.createBuffer(1, ctx.sampleRate * sec, ctx.sampleRate);
+      const d = b.getChannelData(0);
+      for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+      return b;
+    }
+
+    // utility: simple reverb (convolution with noise impulse)
+    function simpleReverb(sec, decay) {
+      const rate = ctx.sampleRate;
+      const len = rate * sec;
+      const b = ctx.createBuffer(2, len, rate);
+      for (let c=0;c<2;c++) {
+        const d = b.getChannelData(c);
+        for (let i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, decay);
+      }
+      const conv = ctx.createConvolver();
+      conv.buffer = b;
+      return conv;
+    }
 
     switch (name) {
       case 'rain': {
-        const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-        const d = buf.getChannelData(0);
-        for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
-        const src = ctx.createBufferSource();
-        src.buffer = buf; src.loop = true;
-        const f = ctx.createBiquadFilter();
-        f.type = 'lowpass'; f.frequency.value = 1200;
-        const f2 = ctx.createBiquadFilter();
-        f2.type = 'highpass'; f2.frequency.value = 300;
-        src.connect(f).connect(f2).connect(g);
-        src.start();
-        nodes.push(src, f, f2);
-        break;
+        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(2); src.loop = true;
+        const f1 = ctx.createBiquadFilter(); f1.type='lowpass'; f1.frequency.value=1200;
+        const f2 = ctx.createBiquadFilter(); f2.type='highpass'; f2.frequency.value=300;
+        src.connect(f1).connect(f2).connect(g); src.start();
+        nodes.push(src, f1, f2); break;
       }
       case 'thunder': {
         const makeThunder = () => {
           const dur = 3 + Math.random()*4;
-          const src = ctx.createBufferSource();
-          const b = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
-          const d = b.getChannelData(0);
-          for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
-          src.buffer = b;
-          const f = ctx.createBiquadFilter();
-          f.type = 'lowpass'; f.frequency.value = 200;
+          const src = ctx.createBufferSource(); src.buffer = noiseBuffer(dur);
+          const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=200;
           const env = ctx.createGain();
           env.gain.setValueAtTime(0, ctx.currentTime);
           env.gain.linearRampToValueAtTime(1.2, ctx.currentTime + 0.3);
           env.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-          src.connect(f).connect(env).connect(g);
-          src.start();
+          src.connect(f).connect(env).connect(g); src.start();
           nodes.push(src, f, env);
           setTimeout(() => { try { src.stop(); } catch(e){} }, dur*1000 + 500);
         };
         makeThunder();
         const iv = setInterval(() => { if (Math.random() > 0.55) makeThunder(); }, 6000 + Math.random()*8000);
-        timers.push(iv);
-        break;
+        timers.push(iv); break;
       }
       case 'wind': {
-        const buf = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate);
-        const d = buf.getChannelData(0);
-        for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
-        const src = ctx.createBufferSource();
-        src.buffer = buf; src.loop = true;
-        const f = ctx.createBiquadFilter();
-        f.type = 'bandpass'; f.frequency.value = 600; f.Q.value = 0.5;
-        const env = ctx.createGain();
-        env.gain.value = 0.5;
-        src.connect(f).connect(env).connect(g);
-        src.start();
+        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(3); src.loop = true;
+        const f = ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=600; f.Q.value=0.5;
+        const env = ctx.createGain(); env.gain.value = 0.5;
+        src.connect(f).connect(env).connect(g); src.start();
         nodes.push(src, f, env);
         const iv = setInterval(() => {
-          const now = ctx.currentTime;
-          env.gain.setTargetAtTime(0.3 + Math.random()*0.5, now, 1.5);
-          f.frequency.setTargetAtTime(300 + Math.random()*700, now, 1.5);
+          env.gain.setTargetAtTime(0.3 + Math.random()*0.5, ctx.currentTime, 1.5);
+          f.frequency.setTargetAtTime(300 + Math.random()*700, ctx.currentTime, 1.5);
         }, 2500);
-        timers.push(iv);
-        break;
+        timers.push(iv); break;
       }
       case 'ocean': {
-        const buf = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate);
-        const d = buf.getChannelData(0);
-        for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
-        const src = ctx.createBufferSource();
-        src.buffer = buf; src.loop = true;
-        const f = ctx.createBiquadFilter();
-        f.type = 'lowpass'; f.frequency.value = 400;
-        const env = ctx.createGain();
-        env.gain.value = 0;
-        src.connect(f).connect(env).connect(g);
-        src.start();
+        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(3); src.loop = true;
+        const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=400;
+        const env = ctx.createGain(); env.gain.value = 0;
+        src.connect(f).connect(env).connect(g); src.start();
         nodes.push(src, f, env);
         const cycle = () => {
-          const now = ctx.currentTime;
-          env.gain.setTargetAtTime(0.7, now, 1.2);
-          f.frequency.setTargetAtTime(900, now, 1.2);
-          setTimeout(() => {
+          if (!active['ocean']) return;
+          env.gain.setTargetAtTime(0.7, ctx.currentTime, 1.2);
+          f.frequency.setTargetAtTime(900, ctx.currentTime, 1.2);
+          timers.push(setTimeout(() => {
             if (!active['ocean']) return;
             env.gain.setTargetAtTime(0.1, ctx.currentTime, 2.5);
             f.frequency.setTargetAtTime(250, ctx.currentTime, 2.5);
-          }, 3500);
+          }, 3500));
         };
         cycle();
         const iv = setInterval(cycle, 7000 + Math.random()*3000);
-        timers.push(iv);
-        break;
+        timers.push(iv); break;
       }
       case 'fire': {
-        const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-        const d = buf.getChannelData(0);
-        for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
-        const src = ctx.createBufferSource();
-        src.buffer = buf; src.loop = true;
-        const f = ctx.createBiquadFilter();
-        f.type = 'lowpass'; f.frequency.value = 700;
-        src.connect(f).connect(g);
-        src.start();
+        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(2); src.loop = true;
+        const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=700;
+        src.connect(f).connect(g); src.start();
         nodes.push(src, f);
         const iv = setInterval(() => {
           if (Math.random() > 0.4) return;
-          const click = ctx.createOscillator();
-          click.type = 'square';
+          const click = ctx.createOscillator(); click.type='square';
           click.frequency.value = 800 + Math.random()*1200;
           const cg = ctx.createGain();
           cg.gain.setValueAtTime(0.2 + Math.random()*0.15, ctx.currentTime);
@@ -339,18 +454,83 @@
           click.start(); click.stop(ctx.currentTime + 0.12);
           nodes.push(click, cg);
         }, 180 + Math.random()*220);
-        timers.push(iv);
-        break;
+        timers.push(iv); break;
+      }
+      case 'crickets': {
+        const iv = setInterval(() => {
+          if (!active['crickets']) return;
+          const now = ctx.currentTime;
+          const chirp = ctx.createOscillator(); chirp.type='sine'; chirp.frequency.value=4200 + Math.random()*800;
+          const cg = ctx.createGain();
+          cg.gain.setValueAtTime(0, now);
+          // quick chirp envelope: 3-5 pulses
+          const pulses = 3 + Math.floor(Math.random()*3);
+          let t = now;
+          for (let p=0; p<pulses; p++) {
+            cg.gain.linearRampToValueAtTime(0.08 + Math.random()*0.04, t+0.01);
+            cg.gain.linearRampToValueAtTime(0, t+0.03);
+            t += 0.05 + Math.random()*0.04;
+          }
+          chirp.connect(cg).connect(g);
+          chirp.start(now); chirp.stop(t + 0.05);
+          nodes.push(chirp, cg);
+        }, 800 + Math.random()*1200);
+        timers.push(iv); break;
+      }
+      case 'birds': {
+        const iv = setInterval(() => {
+          if (!active['birds']) return;
+          if (Math.random() > 0.35) return;
+          const now = ctx.currentTime;
+          const f = 3000 + Math.random()*4000;
+          const o = ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(f, now);
+          o.frequency.exponentialRampToValueAtTime(f * (0.7 + Math.random()*0.5), now + 0.08);
+          const og = ctx.createGain();
+          og.gain.setValueAtTime(0, now);
+          og.gain.linearRampToValueAtTime(0.1, now + 0.02);
+          og.gain.exponentialRampToValueAtTime(0.001, now + 0.15 + Math.random()*0.2);
+          o.connect(og).connect(g);
+          o.start(now); o.stop(now + 0.4);
+          nodes.push(o, og);
+        }, 400 + Math.random()*800);
+        timers.push(iv); break;
+      }
+      case 'stream': {
+        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(2); src.loop = true;
+        const f = ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1200; f.Q.value=2;
+        const env = ctx.createGain(); env.gain.value = 0.4;
+        src.connect(f).connect(env).connect(g); src.start();
+        nodes.push(src, f, env);
+        const iv = setInterval(() => {
+          env.gain.setTargetAtTime(0.25 + Math.random()*0.25, ctx.currentTime, 0.6);
+          f.frequency.setTargetAtTime(900 + Math.random()*800, ctx.currentTime, 0.6);
+        }, 800);
+        timers.push(iv); break;
+      }
+      case 'snow': {
+        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(3); src.loop = true;
+        const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=400;
+        const env = ctx.createGain(); env.gain.value = 0.08;
+        src.connect(f).connect(env).connect(g); src.start();
+        nodes.push(src, f, env);
+        const iv = setInterval(() => {
+          if (Math.random() > 0.15) return;
+          const now = ctx.currentTime;
+          const c = ctx.createOscillator(); c.type='square'; c.frequency.value=6000 + Math.random()*4000;
+          const cg = ctx.createGain();
+          cg.gain.setValueAtTime(0.03, now);
+          cg.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+          c.connect(cg).connect(g); c.start(now); c.stop(now+0.03);
+          nodes.push(c, cg);
+        }, 1200 + Math.random()*2000);
+        timers.push(iv); break;
       }
       case 'drone': {
         const freqs = [110, 112, 164.8, 166.2];
         freqs.forEach((f, i) => {
-          const o = ctx.createOscillator();
-          o.type = i % 2 === 0 ? 'sine' : 'triangle';
-          o.frequency.value = f;
+          const o = ctx.createOscillator(); o.type = i % 2 === 0 ? 'sine' : 'triangle'; o.frequency.value = f;
           const og = ctx.createGain(); og.gain.value = 0.12;
-          o.connect(og).connect(g);
-          o.start();
+          o.connect(og).connect(g); o.start();
           nodes.push(o, og);
         });
         const iv = setInterval(() => {
@@ -360,87 +540,252 @@
             }
           });
         }, 4000);
-        timers.push(iv);
-        break;
+        timers.push(iv); break;
+      }
+      case 'space': {
+        const freqs = [55, 57.5, 61.7, 65.4];
+        freqs.forEach(f => {
+          const o = ctx.createOscillator(); o.type='sine'; o.frequency.value = f;
+          const og = ctx.createGain(); og.gain.value = 0.15;
+          o.connect(og).connect(g); o.start();
+          nodes.push(o, og);
+        });
+        const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value = 200;
+        nodes.push(f);
+        const iv = setInterval(() => {
+          f.frequency.setTargetAtTime(80 + Math.random()*250, ctx.currentTime, 4);
+        }, 6000);
+        timers.push(iv); break;
       }
       case 'binaural': {
-        const merger = ctx.createChannelMerger(2);
-        merger.connect(g);
-        const oL = ctx.createOscillator(); oL.type = 'sine'; oL.frequency.value = 200;
-        const oR = ctx.createOscillator(); oR.type = 'sine'; oR.frequency.value = 205;
+        const merger = ctx.createChannelMerger(2); merger.connect(g);
+        const oL = ctx.createOscillator(); oL.type='sine'; oL.frequency.value=200;
+        const oR = ctx.createOscillator(); oR.type='sine'; oR.frequency.value=205;
         const gL = ctx.createGain(); gL.gain.value = 0.25;
         const gR = ctx.createGain(); gR.gain.value = 0.25;
         oL.connect(gL).connect(merger, 0, 0);
         oR.connect(gR).connect(merger, 0, 1);
         oL.start(); oR.start();
-        nodes.push(oL, oR, gL, gR, merger);
-        break;
+        nodes.push(oL, oR, gL, gR, merger); break;
       }
-      case 'softbeat': {
-        const tempo = 80; // BPM
-        const beatDur = 60/tempo;
-        const pad = ctx.createOscillator();
-        pad.type = 'triangle'; pad.frequency.value = 130.8;
-        const padG = ctx.createGain(); padG.gain.value = 0.12;
+      case 'arpeggio': {
+        // Pentatonic C major: C D E G A
+        const scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 784.00, 880.00];
+        const rev = ctx.createConvolver();
+        const revBuf = ctx.createBuffer(2, ctx.sampleRate * 1.5, ctx.sampleRate);
+        for (let c=0;c<2;c++) {
+          const d = revBuf.getChannelData(c);
+          for (let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 3);
+        }
+        rev.buffer = revBuf; rev.connect(g);
+        const noteLen = 0.28;
+        const next = () => {
+          if (!active['arpeggio']) return;
+          const now = ctx.currentTime;
+          const f = scale[Math.floor(Math.random()*scale.length)];
+          const o = ctx.createOscillator(); o.type='sine'; o.frequency.value = f;
+          const og = ctx.createGain();
+          og.gain.setValueAtTime(0, now);
+          og.gain.linearRampToValueAtTime(0.18, now + 0.04);
+          og.gain.exponentialRampToValueAtTime(0.001, now + noteLen);
+          o.connect(og).connect(rev).connect(g);
+          o.start(now); o.stop(now + noteLen + 0.05);
+          nodes.push(o, og);
+          timers.push(setTimeout(next, (noteLen + 0.06 + Math.random()*0.18)*1000));
+        };
+        next(); break;
+      }
+      case 'pianodrift': {
+        // Minor pentatonic drift: C Eb F G Bb
+        const scale = [261.63, 311.13, 349.23, 392.00, 466.16, 523.25, 622.25, 698.46];
+        const rev = ctx.createConvolver();
+        const revBuf = ctx.createBuffer(2, ctx.sampleRate * 2.2, ctx.sampleRate);
+        for (let c=0;c<2;c++) {
+          const d = revBuf.getChannelData(c);
+          for (let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 4);
+        }
+        rev.buffer = revBuf; rev.connect(g);
+        const next = () => {
+          if (!active['pianodrift']) return;
+          const now = ctx.currentTime;
+          const f = scale[Math.floor(Math.random()*scale.length)];
+          const o = ctx.createOscillator(); o.type='triangle'; o.frequency.value = f;
+          const og = ctx.createGain();
+          const dur = 1.5 + Math.random()*2.5;
+          og.gain.setValueAtTime(0, now);
+          og.gain.linearRampToValueAtTime(0.14, now + 0.6);
+          og.gain.exponentialRampToValueAtTime(0.001, now + dur);
+          o.connect(og).connect(rev).connect(g);
+          o.start(now); o.stop(now + dur + 0.1);
+          nodes.push(o, og);
+          timers.push(setTimeout(next, (dur + 0.5 + Math.random()*1.5)*1000));
+        };
+        next(); break;
+      }
+      case 'lofi': {
+        const tempo = 75; const spb = 60/tempo;
+        // Vinyl crackle
+        const crackle = ctx.createBufferSource(); crackle.buffer = noiseBuffer(2); crackle.loop = true;
+        const cf = ctx.createBiquadFilter(); cf.type='highpass'; cf.frequency.value=6000;
+        const cenv = ctx.createGain(); cenv.gain.value = 0.04;
+        crackle.connect(cf).connect(cenv).connect(g); crackle.start();
+        nodes.push(crackle, cf, cenv);
+        // Soft pad
+        const pad = ctx.createOscillator(); pad.type='triangle'; pad.frequency.value=174.6;
+        const padG = ctx.createGain(); padG.gain.value = 0.08;
         pad.connect(padG).connect(g); pad.start();
         nodes.push(pad, padG);
-        let beatCount = 0;
+        let beat = 0;
         const next = () => {
-          if (!active['softbeat']) return;
+          if (!active['lofi']) return;
           const now = ctx.currentTime;
-          if (beatCount % 4 === 0) {
-            const kick = ctx.createOscillator();
-            kick.type = 'sine';
+          // Kick on 1
+          if (beat % 4 === 0) {
+            const kick = ctx.createOscillator(); kick.type='sine';
             kick.frequency.setValueAtTime(150, now);
             kick.frequency.exponentialRampToValueAtTime(40, now + 0.12);
             const kg = ctx.createGain();
-            kg.gain.setValueAtTime(0.6, now);
-            kg.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-            kick.connect(kg).connect(g);
-            kick.start(now); kick.stop(now + 0.25);
+            kg.gain.setValueAtTime(0.5, now); kg.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+            kick.connect(kg).connect(g); kick.start(now); kick.stop(now + 0.28);
             nodes.push(kick, kg);
           }
-          if (beatCount % 2 === 1) {
-            const hat = ctx.createBufferSource();
-            const hb = ctx.createBuffer(1, ctx.sampleRate*0.05, ctx.sampleRate);
-            const hd = hb.getChannelData(0);
-            for (let i=0;i<hd.length;i++) hd[i] = Math.random()*2-1;
-            hat.buffer = hb;
-            const hf = ctx.createBiquadFilter();
-            hf.type = 'highpass'; hf.frequency.value = 5000;
+          // Brushed snare on 2 and 4
+          if (beat % 4 === 2 || beat % 4 === 0) {
+            const snare = ctx.createBufferSource(); snare.buffer = noiseBuffer(0.12);
+            const sf = ctx.createBiquadFilter(); sf.type='bandpass'; sf.frequency.value=2500; sf.Q.value=1.2;
+            const sg = ctx.createGain();
+            sg.gain.setValueAtTime(beat % 4 === 2 ? 0.18 : 0.06, now);
+            sg.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+            snare.connect(sf).connect(sg).connect(g); snare.start(now); snare.stop(now + 0.12);
+            nodes.push(snare, sf, sg);
+          }
+          // Hi-hat on offbeats
+          if (beat % 2 === 1) {
+            const hat = ctx.createBufferSource(); hat.buffer = noiseBuffer(0.04);
+            const hf = ctx.createBiquadFilter(); hf.type='highpass'; hf.frequency.value=7000;
             const hg = ctx.createGain();
-            hg.gain.setValueAtTime(0.12, now);
-            hg.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-            hat.connect(hf).connect(hg).connect(g);
-            hat.start(now); hat.stop(now + 0.05);
+            hg.gain.setValueAtTime(0.06, now); hg.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+            hat.connect(hf).connect(hg).connect(g); hat.start(now); hat.stop(now + 0.04);
             nodes.push(hat, hf, hg);
           }
-          beatCount++;
-          timers.push(setTimeout(next, beatDur*1000));
+          // Occasional chord stab
+          if (beat % 16 === 12) {
+            [261.63, 329.63, 392.00].forEach(f => {
+              const c = ctx.createOscillator(); c.type='sine'; c.frequency.value = f;
+              const cg = ctx.createGain();
+              cg.gain.setValueAtTime(0, now); cg.gain.linearRampToValueAtTime(0.08, now + 0.1);
+              cg.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+              c.connect(cg).connect(g); c.start(now); c.stop(now + 0.7);
+              nodes.push(c, cg);
+            });
+          }
+          beat++;
+          timers.push(setTimeout(next, spb * 1000 / 2)); // 8th note resolution
         };
-        next();
-        break;
+        next(); break;
       }
-      case 'space': {
-        const freqs = [55, 57.5, 61.7, 65.4];
-        freqs.forEach(f => {
-          const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
-          const og = ctx.createGain(); og.gain.value = 0.15;
-          o.connect(og).connect(g); o.start();
-          nodes.push(o, og);
-        });
-        const f = ctx.createBiquadFilter();
-        f.type = 'lowpass'; f.frequency.value = 200;
-        const fenv = ctx.createGain();
-        fenv.gain.value = 1;
-        g.connect(fenv); // not used as chain, just to keep ref
-        nodes.push(f, fenv);
-        const iv = setInterval(() => {
+      case 'house': {
+        const tempo = 124; const spb = 60/tempo;
+        // Kick pattern: every beat
+        // Hat: offbeats (8th notes)
+        // Bassline: root on 1, fifth on 3
+        const root = 65.41; // C2
+        let beat = 0;
+        const next = () => {
+          if (!active['house']) return;
           const now = ctx.currentTime;
-          f.frequency.setTargetAtTime(80 + Math.random()*250, now, 4);
-        }, 6000);
-        timers.push(iv);
-        break;
+          // Four-on-floor kick
+          const kick = ctx.createOscillator(); kick.type='sine';
+          kick.frequency.setValueAtTime(160, now);
+          kick.frequency.exponentialRampToValueAtTime(45, now + 0.1);
+          const kg = ctx.createGain();
+          kg.gain.setValueAtTime(0.65, now); kg.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          kick.connect(kg).connect(g); kick.start(now); kick.stop(now + 0.25);
+          nodes.push(kick, kg);
+          // Open hat on offbeats
+          if (beat % 2 === 1) {
+            const hat = ctx.createBufferSource(); hat.buffer = noiseBuffer(0.06);
+            const hf = ctx.createBiquadFilter(); hf.type='highpass'; hf.frequency.value=6000;
+            const hg = ctx.createGain();
+            hg.gain.setValueAtTime(0.1, now); hg.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+            hat.connect(hf).connect(hg).connect(g); hat.start(now); hat.stop(now + 0.06);
+            nodes.push(hat, hf, hg);
+          }
+          // Bassline
+          if (beat % 4 === 0) {
+            const b = ctx.createOscillator(); b.type='sawtooth'; b.frequency.value = root;
+            const bf = ctx.createBiquadFilter(); bf.type='lowpass'; bf.frequency.value = 600;
+            const bg = ctx.createGain();
+            bg.gain.setValueAtTime(0.18, now); bg.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+            b.connect(bf).connect(bg).connect(g); b.start(now); b.stop(now + 0.4);
+            nodes.push(b, bf, bg);
+          } else if (beat % 4 === 2) {
+            const b = ctx.createOscillator(); b.type='sawtooth'; b.frequency.value = root * 1.5;
+            const bf = ctx.createBiquadFilter(); bf.type='lowpass'; bf.frequency.value = 600;
+            const bg = ctx.createGain();
+            bg.gain.setValueAtTime(0.16, now); bg.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            b.connect(bf).connect(bg).connect(g); b.start(now); b.stop(now + 0.35);
+            nodes.push(b, bf, bg);
+          }
+          // Warm pad every 8 bars
+          if (beat % 32 === 0) {
+            [261.63, 329.63, 392.00, 493.88].forEach(f => {
+              const p = ctx.createOscillator(); p.type='triangle'; p.frequency.value = f;
+              const pg = ctx.createGain();
+              pg.gain.setValueAtTime(0, now); pg.gain.linearRampToValueAtTime(0.06, now + 0.5);
+              pg.gain.exponentialRampToValueAtTime(0.001, now + 3.0);
+              p.connect(pg).connect(g); p.start(now); p.stop(now + 3.2);
+              nodes.push(p, pg);
+            });
+          }
+          beat++;
+          timers.push(setTimeout(next, spb * 1000));
+        };
+        next(); break;
+      }
+      case 'techno': {
+        const tempo = 130; const spb = 60/tempo;
+        let beat = 0;
+        const next = () => {
+          if (!active['techno']) return;
+          const now = ctx.currentTime;
+          // Hard kick
+          const kick = ctx.createOscillator(); kick.type='sine';
+          kick.frequency.setValueAtTime(180, now);
+          kick.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+          const kg = ctx.createGain();
+          kg.gain.setValueAtTime(0.7, now); kg.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+          kick.connect(kg).connect(g); kick.start(now); kick.stop(now + 0.22);
+          nodes.push(kick, kg);
+          // Closed hat every 8th
+          const hat = ctx.createBufferSource(); hat.buffer = noiseBuffer(0.03);
+          const hf = ctx.createBiquadFilter(); hf.type='highpass'; hf.frequency.value=8000;
+          const hg = ctx.createGain();
+          hg.gain.setValueAtTime(0.12, now); hg.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+          hat.connect(hf).connect(hg).connect(g); hat.start(now); hat.stop(now + 0.03);
+          nodes.push(hat, hf, hg);
+          // Industrial noise percussion on 2 and 4
+          if (beat % 2 === 1) {
+            const n = ctx.createBufferSource(); n.buffer = noiseBuffer(0.08);
+            const nf = ctx.createBiquadFilter(); nf.type='bandpass'; nf.frequency.value=3000; nf.Q.value=2;
+            const ng = ctx.createGain();
+            ng.gain.setValueAtTime(0.14, now); ng.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+            n.connect(nf).connect(ng).connect(g); n.start(now); n.stop(now + 0.08);
+            nodes.push(n, nf, ng);
+          }
+          // Distorted bass on 1
+          if (beat % 4 === 0) {
+            const b = ctx.createOscillator(); b.type='square'; b.frequency.value = 55;
+            const bf = ctx.createBiquadFilter(); bf.type='lowpass'; bf.frequency.value = 400;
+            const bg = ctx.createGain();
+            bg.gain.setValueAtTime(0.2, now); bg.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            b.connect(bf).connect(bg).connect(g); b.start(now); b.stop(now + 0.45);
+            nodes.push(b, bf, bg);
+          }
+          beat++;
+          timers.push(setTimeout(next, spb * 1000 / 2)); // 8th resolution
+        };
+        next(); break;
       }
     }
   }
@@ -448,12 +793,32 @@
   function updateUI(name, on) {
     const btn = $('button[data-scene="'+name+'"]');
     const st = $('[data-status="'+name+'"]');
+    const dot = $('[data-dot="'+name+'"]');
     if (btn) btn.textContent = on ? 'Stop' : 'Play';
     if (st) { st.textContent = on ? 'Playing' : 'Off'; st.classList.toggle('on', on); }
+    if (dot) dot.classList.toggle('on', on);
+  }
+
+  function renderMixer() {
+    const row = $('#mixerRow');
+    const playing = Object.keys(active);
+    if (playing.length === 0) { row.innerHTML = '<span class="small">Nothing playing</span>'; return; }
+    row.innerHTML = playing.map(k => '<span class="mixer-item"><span class="mixer-dot on"></span>' + k + '</span>').join('');
   }
 
   function stopAll() {
     Object.keys(active).forEach(k => stopScene(k));
+  }
+
+  function setTimer(minutes) {
+    if (timerId) { clearTimeout(timerId); timerId = null; }
+    if (!minutes) { $('#timerStatus').textContent = ''; return; }
+    $('#timerStatus').textContent = 'Fading in ' + minutes + 'm...';
+    timerId = setTimeout(() => {
+      stopAll();
+      $('#timerStatus').textContent = 'Stopped by timer';
+      timerId = null;
+    }, minutes * 60 * 1000);
   }
 
   // Bind events
@@ -484,16 +849,23 @@
     });
   });
 
-  // Keyboard shortcuts: 1-9 toggle scenes, 0 = stop all
+  // Timer buttons
+  $('#timerOff').addEventListener('click', () => setTimer(0));
+  $('#timer15').addEventListener('click', () => setTimer(15));
+  $('#timer30').addEventListener('click', () => setTimer(30));
+  $('#timer60').addEventListener('click', () => setTimer(60));
+
+  // Keyboard shortcuts
   document.addEventListener('keydown', e => {
-    const scenes = ['rain','thunder','wind','ocean','fire','drone','binaural','softbeat','space'];
     if (e.key >= '1' && e.key <= '9') {
       const idx = parseInt(e.key) - 1;
-      if (scenes[idx]) playScene(scenes[idx]);
+      if (SCENES[idx]) playScene(SCENES[idx]);
     } else if (e.key === '0') {
       stopAll();
     }
   });
+
+  renderMixer();
 })();
 </script>
 
