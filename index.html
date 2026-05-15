@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hermes Agent Music — Procedural Ambient Sounds &amp; Beats</title>
+<style>
+  :root {
+    --bg: #0b0c10;
+    --card: #111217;
+    --fg: #c5c6c7;
+    --muted: #6c757d;
+    --accent: #3b82f6;
+    --accent2: #45a29e;
+    --danger: #e63946;
+    --radius: 10px;
+    --gap: 18px;
+    --font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--font); }
+  body { padding: 24px; max-width: 1200px; margin: 0 auto; }
+  h1 { font-weight: 700; font-size: 1.9rem; margin: 0 0 6px; letter-spacing: -0.3px; }
+  .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 22px; }
+  .topbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
+  .btn {
+    border: 0; border-radius: 8px; padding: 10px 16px; font-size: 0.95rem;
+    font-family: inherit; cursor: pointer; color: #fff; background: var(--accent);
+    transition: transform .05s ease, opacity .2s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn.secondary { background: #22262e; color: var(--fg); }
+  .btn.danger { background: var(--danger); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--gap); }
+
+  .card {
+    background: var(--card); border-radius: var(--radius); padding: 18px;
+    border: 1px solid #1a1c23; display: flex; flex-direction: column; gap: 12px;
+  }
+  .card h3 { margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+  .card p { margin: 0; color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
+  .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .volwrap { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px; }
+  .volwrap label { font-size: 0.8rem; color: var(--muted); }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 6px;
+    background: #1e222b; border-radius: 999px; outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; background: var(--accent); cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; border: 0;
+  }
+
+  .status { font-size: 0.8rem; color: var(--muted); }
+  .status.on { color: var(--accent2); }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px;
+    background: #1a2b3c; color: #7fb3ff;
+  }
+  .badge.music { background: #1a2e2e; color: #6ee7b7; }
+
+  footer { margin-top: 28px; color: var(--muted); font-size: 0.82rem; text-align: center; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<h1>Hermes Agent Music</h1>
+<div class="subtitle">Procedural ambient sounds &amp; beats for coders. All generated live in your browser with the Web Audio API. No downloads, no samples.</div>
+
+<div class="topbar">
+  <button id="btnStart" class="btn">Start Audio Engine</button>
+  <button id="btnStopAll" class="btn secondary danger" disabled>Stop All</button>
+  <span class="status" id="masterStatus">Audio context not started</span>
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <h3>Rain <span class="badge">weather</span></h3>
+    <p>Filtered brown noise with soft high-end drizzle. Gentle, steady, good for long sessions.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="rain">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="60" data-vol="rain"></div>
+    </div>
+    <div class="status" data-status="rain">Off</div>
+  </div>
+
+  <div class="card">
+    <h3>Thunder <span class="badge">weather</span></h3>
+    <p>Deep rumble bursts with sub-bass energy. Randomized timing, long decay.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="thunder">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="60" data-vol="thunder"></div>
+    </div>
+    <div class="status" data-status="thunder">Off</div>
+  </div>
+
+  <div class="card">
+    <h3>Wind <span class="badge">weather</span></h3>
+    <p>Howling band-passed noise with slow amplitude swells. Eerie and spacious.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="wind">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="55" data-vol="wind"></div>
+    </div>
+    <div class="status" data-status="wind">Off</div>
+  </div>
+
+  <div class="card">
+    <h3>Ocean <span class="badge">weather</span></h3>
+    <p>Filtered pink noise with slow crashing cycles. Simulates waves on a shoreline.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="ocean">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="60" data-vol="ocean"></div>
+    </div>
+    <div class="status" data-status="ocean">Off</div>
+  </div>
+
+  <div class="card">
+    <h3>Fire <span class="badge">weather</span></h3>
+    <p>Crackling bursts mixed with warm low-end noise. Campfire vibes, runs forever.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="fire">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="55" data-vol="fire"></div>
+    </div>
+    <div class="status" data-status="fire">Off</div>
+  </div>
+
+  <div class="card">
+    <h3>Drone Pad <span class="badge music">music</span></h3>
+    <p>Four detuned oscillators creating a slowly beating ambient pad. Deep and meditative.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="drone">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="45" data-vol="drone"></div>
+    </div>
+    <div class="status" data-status="drone">Off</div>
+  </div>
+
+  <div class="card">
+    <h3>Binaural Beat <span class="badge music">music</span></h3>
+    <p>Left ear at 200 Hz, right at 205 Hz. 5 Hz theta difference for focus or relaxation.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="binaural">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="30" data-vol="binaural"></div>
+    </div>
+    <div class="status" data-status="binaural">Off</div>
+  </div>
+
+  <div class="card">
+    <h3>Soft Beat <span class="badge music">music</span></h3>
+    <p>Gentle kick and hi-hat loop at 80 BPM with a warm pad underneath. Minimal, smooth.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="softbeat">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="50" data-vol="softbeat"></div>
+    </div>
+    <div class="status" data-status="softbeat">Off</div>
+  </div>
+
+  <div class="card">
+    <h3>Space Drone <span class="badge music">music</span></h3>
+    <p>Very low sub-oscillators with slow filter sweeps. Deep space, long sustain.</p>
+    <div class="controls">
+      <button class="btn secondary" data-scene="space">Play</button>
+      <div class="volwrap"><label>Vol</label><input type="range" min="0" max="100" value="40" data-vol="space"></div>
+    </div>
+    <div class="status" data-status="space">Off</div>
+  </div>
+
+</div>
+
+<footer>
+  Built by Hermes Agent. Pure Web Audio API — no samples, no external files. Runs offline. <br>
+  Tip: Lower your system volume before first play.
+</footer>
+
+<script>
+(function(){
+  'use strict';
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let ctx = null;
+  let masterGain = null;
+  const active = {}; // scene -> { gain, nodes[], interval/timeout ids }
+
+  const $ = q => document.querySelector(q);
+  const $$ = q => Array.from(document.querySelectorAll(q));
+
+  function ensureCtx() {
+    if (!ctx) {
+      ctx = new AC();
+      masterGain = ctx.createGain();
+      masterGain.connect(ctx.destination);
+      masterGain.gain.value = 0.9;
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+  }
+
+  function stopScene(name) {
+    const s = active[name];
+    if (!s) return;
+    try { s.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.3); } catch(e){}
+    setTimeout(() => {
+      if (s.nodes) s.nodes.forEach(n => { try { if (n.stop) n.stop(); n.disconnect(); } catch(e){} });
+      if (s.timers) s.timers.forEach(t => clearInterval(t));
+      delete active[name];
+      updateUI(name, false);
+    }, 400);
+  }
+
+  function playScene(name) {
+    ensureCtx();
+    if (active[name]) { stopScene(name); return; }
+    const vol = parseFloat($('input[data-vol="'+name+'"]').value) / 100;
+    const g = ctx.createGain();
+    g.connect(masterGain);
+    g.gain.value = vol;
+    const nodes = [];
+    const timers = [];
+    active[name] = { gain: g, nodes, timers };
+    updateUI(name, true);
+
+    const t = ctx.currentTime;
+
+    switch (name) {
+      case 'rain': {
+        const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+        const src = ctx.createBufferSource();
+        src.buffer = buf; src.loop = true;
+        const f = ctx.createBiquadFilter();
+        f.type = 'lowpass'; f.frequency.value = 1200;
+        const f2 = ctx.createBiquadFilter();
+        f2.type = 'highpass'; f2.frequency.value = 300;
+        src.connect(f).connect(f2).connect(g);
+        src.start();
+        nodes.push(src, f, f2);
+        break;
+      }
+      case 'thunder': {
+        const makeThunder = () => {
+          const dur = 3 + Math.random()*4;
+          const src = ctx.createBufferSource();
+          const b = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+          const d = b.getChannelData(0);
+          for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+          src.buffer = b;
+          const f = ctx.createBiquadFilter();
+          f.type = 'lowpass'; f.frequency.value = 200;
+          const env = ctx.createGain();
+          env.gain.setValueAtTime(0, ctx.currentTime);
+          env.gain.linearRampToValueAtTime(1.2, ctx.currentTime + 0.3);
+          env.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+          src.connect(f).connect(env).connect(g);
+          src.start();
+          nodes.push(src, f, env);
+          setTimeout(() => { try { src.stop(); } catch(e){} }, dur*1000 + 500);
+        };
+        makeThunder();
+        const iv = setInterval(() => { if (Math.random() > 0.55) makeThunder(); }, 6000 + Math.random()*8000);
+        timers.push(iv);
+        break;
+      }
+      case 'wind': {
+        const buf = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+        const src = ctx.createBufferSource();
+        src.buffer = buf; src.loop = true;
+        const f = ctx.createBiquadFilter();
+        f.type = 'bandpass'; f.frequency.value = 600; f.Q.value = 0.5;
+        const env = ctx.createGain();
+        env.gain.value = 0.5;
+        src.connect(f).connect(env).connect(g);
+        src.start();
+        nodes.push(src, f, env);
+        const iv = setInterval(() => {
+          const now = ctx.currentTime;
+          env.gain.setTargetAtTime(0.3 + Math.random()*0.5, now, 1.5);
+          f.frequency.setTargetAtTime(300 + Math.random()*700, now, 1.5);
+        }, 2500);
+        timers.push(iv);
+        break;
+      }
+      case 'ocean': {
+        const buf = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+        const src = ctx.createBufferSource();
+        src.buffer = buf; src.loop = true;
+        const f = ctx.createBiquadFilter();
+        f.type = 'lowpass'; f.frequency.value = 400;
+        const env = ctx.createGain();
+        env.gain.value = 0;
+        src.connect(f).connect(env).connect(g);
+        src.start();
+        nodes.push(src, f, env);
+        const cycle = () => {
+          const now = ctx.currentTime;
+          env.gain.setTargetAtTime(0.7, now, 1.2);
+          f.frequency.setTargetAtTime(900, now, 1.2);
+          setTimeout(() => {
+            if (!active['ocean']) return;
+            env.gain.setTargetAtTime(0.1, ctx.currentTime, 2.5);
+            f.frequency.setTargetAtTime(250, ctx.currentTime, 2.5);
+          }, 3500);
+        };
+        cycle();
+        const iv = setInterval(cycle, 7000 + Math.random()*3000);
+        timers.push(iv);
+        break;
+      }
+      case 'fire': {
+        const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+        const src = ctx.createBufferSource();
+        src.buffer = buf; src.loop = true;
+        const f = ctx.createBiquadFilter();
+        f.type = 'lowpass'; f.frequency.value = 700;
+        src.connect(f).connect(g);
+        src.start();
+        nodes.push(src, f);
+        const iv = setInterval(() => {
+          if (Math.random() > 0.4) return;
+          const click = ctx.createOscillator();
+          click.type = 'square';
+          click.frequency.value = 800 + Math.random()*1200;
+          const cg = ctx.createGain();
+          cg.gain.setValueAtTime(0.2 + Math.random()*0.15, ctx.currentTime);
+          cg.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04 + Math.random()*0.06);
+          click.connect(cg).connect(g);
+          click.start(); click.stop(ctx.currentTime + 0.12);
+          nodes.push(click, cg);
+        }, 180 + Math.random()*220);
+        timers.push(iv);
+        break;
+      }
+      case 'drone': {
+        const freqs = [110, 112, 164.8, 166.2];
+        freqs.forEach((f, i) => {
+          const o = ctx.createOscillator();
+          o.type = i % 2 === 0 ? 'sine' : 'triangle';
+          o.frequency.value = f;
+          const og = ctx.createGain(); og.gain.value = 0.12;
+          o.connect(og).connect(g);
+          o.start();
+          nodes.push(o, og);
+        });
+        const iv = setInterval(() => {
+          nodes.forEach(n => {
+            if (n && n.frequency && typeof n.frequency.setTargetAtTime === 'function') {
+              n.frequency.setTargetAtTime(n.frequency.value + (Math.random()-0.5)*0.3, ctx.currentTime, 2);
+            }
+          });
+        }, 4000);
+        timers.push(iv);
+        break;
+      }
+      case 'binaural': {
+        const merger = ctx.createChannelMerger(2);
+        merger.connect(g);
+        const oL = ctx.createOscillator(); oL.type = 'sine'; oL.frequency.value = 200;
+        const oR = ctx.createOscillator(); oR.type = 'sine'; oR.frequency.value = 205;
+        const gL = ctx.createGain(); gL.gain.value = 0.25;
+        const gR = ctx.createGain(); gR.gain.value = 0.25;
+        oL.connect(gL).connect(merger, 0, 0);
+        oR.connect(gR).connect(merger, 0, 1);
+        oL.start(); oR.start();
+        nodes.push(oL, oR, gL, gR, merger);
+        break;
+      }
+      case 'softbeat': {
+        const tempo = 80; // BPM
+        const beatDur = 60/tempo;
+        const pad = ctx.createOscillator();
+        pad.type = 'triangle'; pad.frequency.value = 130.8;
+        const padG = ctx.createGain(); padG.gain.value = 0.12;
+        pad.connect(padG).connect(g); pad.start();
+        nodes.push(pad, padG);
+        let beatCount = 0;
+        const next = () => {
+          if (!active['softbeat']) return;
+          const now = ctx.currentTime;
+          if (beatCount % 4 === 0) {
+            const kick = ctx.createOscillator();
+            kick.type = 'sine';
+            kick.frequency.setValueAtTime(150, now);
+            kick.frequency.exponentialRampToValueAtTime(40, now + 0.12);
+            const kg = ctx.createGain();
+            kg.gain.setValueAtTime(0.6, now);
+            kg.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            kick.connect(kg).connect(g);
+            kick.start(now); kick.stop(now + 0.25);
+            nodes.push(kick, kg);
+          }
+          if (beatCount % 2 === 1) {
+            const hat = ctx.createBufferSource();
+            const hb = ctx.createBuffer(1, ctx.sampleRate*0.05, ctx.sampleRate);
+            const hd = hb.getChannelData(0);
+            for (let i=0;i<hd.length;i++) hd[i] = Math.random()*2-1;
+            hat.buffer = hb;
+            const hf = ctx.createBiquadFilter();
+            hf.type = 'highpass'; hf.frequency.value = 5000;
+            const hg = ctx.createGain();
+            hg.gain.setValueAtTime(0.12, now);
+            hg.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+            hat.connect(hf).connect(hg).connect(g);
+            hat.start(now); hat.stop(now + 0.05);
+            nodes.push(hat, hf, hg);
+          }
+          beatCount++;
+          timers.push(setTimeout(next, beatDur*1000));
+        };
+        next();
+        break;
+      }
+      case 'space': {
+        const freqs = [55, 57.5, 61.7, 65.4];
+        freqs.forEach(f => {
+          const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+          const og = ctx.createGain(); og.gain.value = 0.15;
+          o.connect(og).connect(g); o.start();
+          nodes.push(o, og);
+        });
+        const f = ctx.createBiquadFilter();
+        f.type = 'lowpass'; f.frequency.value = 200;
+        const fenv = ctx.createGain();
+        fenv.gain.value = 1;
+        g.connect(fenv); // not used as chain, just to keep ref
+        nodes.push(f, fenv);
+        const iv = setInterval(() => {
+          const now = ctx.currentTime;
+          f.frequency.setTargetAtTime(80 + Math.random()*250, now, 4);
+        }, 6000);
+        timers.push(iv);
+        break;
+      }
+    }
+  }
+
+  function updateUI(name, on) {
+    const btn = $('button[data-scene="'+name+'"]');
+    const st = $('[data-status="'+name+'"]');
+    if (btn) btn.textContent = on ? 'Stop' : 'Play';
+    if (st) { st.textContent = on ? 'Playing' : 'Off'; st.classList.toggle('on', on); }
+  }
+
+  function stopAll() {
+    Object.keys(active).forEach(k => stopScene(k));
+  }
+
+  // Bind events
+  $('#btnStart').addEventListener('click', () => {
+    ensureCtx();
+    $('#btnStart').disabled = true;
+    $('#btnStart').textContent = 'Audio Engine Ready';
+    $('#masterStatus').textContent = 'Audio context running — click any Play button';
+    $('#masterStatus').classList.add('on');
+    $('#btnStopAll').disabled = false;
+  });
+
+  $('#btnStopAll').addEventListener('click', () => {
+    stopAll();
+    $('#masterStatus').textContent = 'All sounds stopped';
+    $('#masterStatus').classList.remove('on');
+  });
+
+  $$('button[data-scene]').forEach(btn => {
+    btn.addEventListener('click', () => playScene(btn.dataset.scene));
+  });
+
+  $$('input[data-vol]').forEach(slider => {
+    slider.addEventListener('input', e => {
+      const name = slider.dataset.vol;
+      const s = active[name];
+      if (s && s.gain) s.gain.gain.setTargetAtTime(parseFloat(e.target.value)/100, ctx.currentTime, 0.1);
+    });
+  });
+
+  // Keyboard shortcuts: 1-9 toggle scenes, 0 = stop all
+  document.addEventListener('keydown', e => {
+    const scenes = ['rain','thunder','wind','ocean','fire','drone','binaural','softbeat','space'];
+    if (e.key >= '1' && e.key <= '9') {
+      const idx = parseInt(e.key) - 1;
+      if (scenes[idx]) playScene(scenes[idx]);
+    } else if (e.key === '0') {
+      stopAll();
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
