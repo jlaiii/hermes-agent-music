@@ -97,12 +97,48 @@
   .seq-cell.beat { background: #2a2e3a; }
 
   .small { font-size: 0.8rem; color: var(--muted); }
+
+  .presets {
+    background: var(--card); border: 1px solid #1a1c23; border-radius: var(--radius);
+    padding: 14px 18px; margin-bottom: 18px;
+  }
+  .presets h4 { margin: 0 0 10px; font-size: 0.95rem; }
+  .preset-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn.preset {
+    background: #1a1c23; border: 1px solid #2a2e3a; color: var(--fg);
+    font-size: 0.82rem; padding: 8px 14px;
+  }
+  .btn.preset:hover { border-color: var(--accent); }
+
+  .viz-wrap {
+    width: 100%; height: 80px; background: var(--card); border: 1px solid #1a1c23;
+    border-radius: var(--radius); margin-bottom: 18px; overflow: hidden; position: relative;
+  }
+  .viz-wrap canvas { display: block; width: 100%; height: 100%; }
+  .viz-label {
+    position: absolute; top: 6px; left: 10px; font-size: 0.7rem; color: var(--muted);
+    pointer-events: none;
+  }
 </style>
 </head>
 <body>
 
 <h1>Hermes Agent Music</h1>
 <div class="subtitle">Procedural ambient sounds, nature, and beats for coders. All generated live in your browser. No downloads, no samples.</div>
+
+<div class="viz-wrap"><canvas id="viz"></canvas><span class="viz-label">Output</span></div>
+
+<div class="presets">
+  <h4>Quick Presets</h4>
+  <div class="preset-row">
+    <button class="btn preset" data-preset="focus">Deep Focus</button>
+    <button class="btn preset" data-preset="rainy">Rainy Code</button>
+    <button class="btn preset" data-preset="nature">Forest Morning</button>
+    <button class="btn preset" data-preset="sleep">Sleep Drift</button>
+    <button class="btn preset" data-preset="drive">Night Drive</button>
+    <button class="btn preset" data-preset="party">Lo-Fi Work</button>
+  </div>
+</div>
 
 <div class="topbar">
   <button id="btnStart" class="btn">Start Audio Engine</button>
@@ -326,6 +362,7 @@
       masterGain = ctx.createGain();
       masterGain.connect(ctx.destination);
       masterGain.gain.value = 0.9;
+      ensureAnalyser();
     }
     if (ctx.state === 'suspended') ctx.resume();
   }
@@ -854,6 +891,65 @@
   $('#timer15').addEventListener('click', () => setTimer(15));
   $('#timer30').addEventListener('click', () => setTimer(30));
   $('#timer60').addEventListener('click', () => setTimer(60));
+
+  // Presets
+  const PRESETS = {
+    focus:   { rain:55, drone:40, binaural:25 },
+    rainy:   { rain:65, thunder:30, lofi:45 },
+    nature:  { birds:50, stream:40, wind:30 },
+    sleep:   { drone:35, space:30, pianodrift:40 },
+    drive:   { house:50, space:25 },
+    party:   { lofi:55, fire:25, crickets:20 }
+  };
+  $$('button[data-preset]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = PRESETS[btn.dataset.preset];
+      if (!p) return;
+      ensureCtx();
+      stopAll();
+      setTimeout(() => {
+        Object.entries(p).forEach(([scene, vol]) => {
+          const slider = $('input[data-vol="'+scene+'"]');
+          if (slider) { slider.value = vol; }
+          playScene(scene);
+          const s = active[scene];
+          if (s && s.gain) s.gain.gain.setTargetAtTime(vol/100, ctx.currentTime, 0.2);
+        });
+      }, 350);
+    });
+  });
+
+  // Visualizer
+  let analyser = null;
+  function ensureAnalyser() {
+    if (analyser) return;
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    masterGain.disconnect();
+    masterGain.connect(analyser);
+    analyser.connect(ctx.destination);
+  }
+  function drawViz() {
+    requestAnimationFrame(drawViz);
+    const cvs = $('#viz');
+    if (!cvs || !analyser) return;
+    const w = cvs.width = cvs.clientWidth;
+    const h = cvs.height = cvs.clientHeight;
+    const d = cvs.getContext('2d');
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    d.fillStyle = '#111217';
+    d.fillRect(0, 0, w, h);
+    const bars = data.length;
+    const bw = w / bars;
+    for (let i = 0; i < bars; i++) {
+      const v = data[i] / 255;
+      const barH = v * h;
+      d.fillStyle = 'rgba(59,130,246,' + (0.3 + v*0.7) + ')';
+      d.fillRect(i * bw, h - barH, bw - 1, barH);
+    }
+  }
+  drawViz();
 
   // Keyboard shortcuts
   document.addEventListener('keydown', e => {
