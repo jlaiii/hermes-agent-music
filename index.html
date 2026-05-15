@@ -396,11 +396,35 @@
 
     const t0 = ctx.currentTime;
 
-    // utility: noise buffer
-    function noiseBuffer(sec) {
-      const b = ctx.createBuffer(1, ctx.sampleRate * sec, ctx.sampleRate);
+    // utility: noise buffer — white, pink, or brown
+    function noiseBuffer(sec, type='white') {
+      const rate = ctx.sampleRate;
+      const len = rate * sec;
+      const b = ctx.createBuffer(1, len, rate);
       const d = b.getChannelData(0);
-      for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+      if (type === 'white') {
+        for (let i=0;i<len;i++) d[i] = Math.random()*2-1;
+      } else if (type === 'pink') {
+        let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+        for (let i=0;i<len;i++) {
+          const white = Math.random()*2-1;
+          b0 = 0.99886*b0 + white*0.0555179;
+          b1 = 0.99332*b1 + white*0.0750759;
+          b2 = 0.96900*b2 + white*0.1538520;
+          b3 = 0.86650*b3 + white*0.3104856;
+          b4 = 0.55000*b4 + white*0.5329522;
+          b5 = -0.7616*b5 - white*0.0168980;
+          d[i] = (b0+b1+b2+b3+b4+b5+b6+white*0.5362)*0.11;
+          b6 = white*0.115926;
+        }
+      } else if (type === 'brown') {
+        let lastOut = 0;
+        for (let i=0;i<len;i++) {
+          const white = Math.random()*2-1;
+          lastOut = (lastOut + (0.02 * white)) / 1.02;
+          d[i] = lastOut * 3.5;
+        }
+      }
       return b;
     }
 
@@ -420,11 +444,26 @@
 
     switch (name) {
       case 'rain': {
-        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(2); src.loop = true;
-        const f1 = ctx.createBiquadFilter(); f1.type='lowpass'; f1.frequency.value=1200;
-        const f2 = ctx.createBiquadFilter(); f2.type='highpass'; f2.frequency.value=300;
-        src.connect(f1).connect(f2).connect(g); src.start();
-        nodes.push(src, f1, f2); break;
+        // Base: brown noise for deep rumble, pink for texture
+        const src1 = ctx.createBufferSource(); src1.buffer = noiseBuffer(2,'brown'); src1.loop = true;
+        const f1 = ctx.createBiquadFilter(); f1.type='lowpass'; f1.frequency.value=900; f1.Q.value=0.7;
+        const e1 = ctx.createGain(); e1.gain.value = 0.6;
+        src1.connect(f1).connect(e1).connect(g); src1.start();
+        nodes.push(src1, f1, e1);
+
+        // Texture layer: pink noise, band-passed for drizzle
+        const src2 = ctx.createBufferSource(); src2.buffer = noiseBuffer(2,'pink'); src2.loop = true;
+        const f2 = ctx.createBiquadFilter(); f2.type='bandpass'; f2.frequency.value=2500; f2.Q.value=1.0;
+        const e2 = ctx.createGain(); e2.gain.value = 0.15;
+        src2.connect(f2).connect(e2).connect(g); src2.start();
+        nodes.push(src2, f2, e2);
+
+        // Slow intensity swell
+        const iv = setInterval(() => {
+          e1.gain.setTargetAtTime(0.4 + Math.random()*0.35, ctx.currentTime, 1.8);
+          f1.frequency.setTargetAtTime(700 + Math.random()*500, ctx.currentTime, 2.0);
+        }, 3000);
+        timers.push(iv); break;
       }
       case 'thunder': {
         const makeThunder = () => {
@@ -444,7 +483,7 @@
         timers.push(iv); break;
       }
       case 'wind': {
-        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(3); src.loop = true;
+        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(3,'pink'); src.loop = true;
         const f = ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=600; f.Q.value=0.5;
         const env = ctx.createGain(); env.gain.value = 0.5;
         src.connect(f).connect(env).connect(g); src.start();
@@ -456,7 +495,7 @@
         timers.push(iv); break;
       }
       case 'ocean': {
-        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(3); src.loop = true;
+        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(3,'pink'); src.loop = true;
         const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=400;
         const env = ctx.createGain(); env.gain.value = 0;
         src.connect(f).connect(env).connect(g); src.start();
@@ -476,22 +515,60 @@
         timers.push(iv); break;
       }
       case 'fire': {
-        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(2); src.loop = true;
-        const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=700;
-        src.connect(f).connect(g); src.start();
-        nodes.push(src, f);
-        const iv = setInterval(() => {
-          if (Math.random() > 0.4) return;
-          const click = ctx.createOscillator(); click.type='square';
-          click.frequency.value = 800 + Math.random()*1200;
-          const cg = ctx.createGain();
-          cg.gain.setValueAtTime(0.2 + Math.random()*0.15, ctx.currentTime);
-          cg.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04 + Math.random()*0.06);
-          click.connect(cg).connect(g);
-          click.start(); click.stop(ctx.currentTime + 0.12);
-          nodes.push(click, cg);
-        }, 180 + Math.random()*220);
-        timers.push(iv); break;
+        // Deep bed: brown noise, very low and warm
+        const bed = ctx.createBufferSource(); bed.buffer = noiseBuffer(3,'brown'); bed.loop = true;
+        const f1 = ctx.createBiquadFilter(); f1.type='lowpass'; f1.frequency.value=280; f1.Q.value=0.6;
+        const e1 = ctx.createGain(); e1.gain.value = 0.55;
+        bed.connect(f1).connect(e1).connect(g); bed.start();
+        nodes.push(bed, f1, e1);
+
+        // Mid crackle texture: pink noise with fast modulation
+        const crackle = ctx.createBufferSource(); crackle.buffer = noiseBuffer(2,'pink'); crackle.loop = true;
+        const cf = ctx.createBiquadFilter(); cf.type='bandpass'; cf.frequency.value=1800; cf.Q.value=1.2;
+        const ce = ctx.createGain(); ce.gain.value = 0.08;
+        crackle.connect(cf).connect(ce).connect(g); crackle.start();
+        nodes.push(crackle, cf, ce);
+
+        // Random pops and snaps
+        const popLoop = () => {
+          if (!active['fire']) return;
+          const now = ctx.currentTime;
+          // Big snap
+          if (Math.random() < 0.12) {
+            const pop = ctx.createBufferSource();
+            const pb = ctx.createBuffer(1, ctx.sampleRate*0.06, ctx.sampleRate);
+            const pd = pb.getChannelData(0);
+            for (let i=0;i<pd.length;i++) pd[i] = (Math.random()*2-1) * Math.pow(1-i/pd.length, 1.5);
+            pop.buffer = pb;
+            const pf = ctx.createBiquadFilter(); pf.type='highpass'; pf.frequency.value=2000;
+            const pg = ctx.createGain();
+            pg.gain.setValueAtTime(0.25 + Math.random()*0.2, now);
+            pg.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+            pop.connect(pf).connect(pg).connect(g);
+            pop.start(now); pop.stop(now + 0.06);
+            nodes.push(pop, pf, pg);
+          }
+          // Small crackle cluster
+          if (Math.random() < 0.45) {
+            const c = ctx.createBufferSource();
+            const cb = ctx.createBuffer(1, ctx.sampleRate*0.03, ctx.sampleRate);
+            const cd = cb.getChannelData(0);
+            for (let i=0;i<cd.length;i++) cd[i] = (Math.random()*2-1);
+            c.buffer = cb;
+            const cef = ctx.createBiquadFilter(); cef.type='bandpass'; cef.frequency.value=4000+Math.random()*3000; cef.Q.value=2.0;
+            const ceg = ctx.createGain();
+            ceg.gain.setValueAtTime(0.06 + Math.random()*0.06, now);
+            ceg.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
+            c.connect(cef).connect(ceg).connect(g);
+            c.start(now); c.stop(now + 0.03);
+            nodes.push(c, cef, ceg);
+          }
+          // Bed intensity fluctuation
+          e1.gain.setTargetAtTime(0.35 + Math.random()*0.3, now, 1.2);
+          ce.gain.setTargetAtTime(0.04 + Math.random()*0.06, now, 0.8);
+          timers.push(setTimeout(popLoop, 120 + Math.random()*350));
+        };
+        popLoop(); break;
       }
       case 'crickets': {
         const iv = setInterval(() => {
@@ -533,7 +610,7 @@
         timers.push(iv); break;
       }
       case 'stream': {
-        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(2); src.loop = true;
+        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(2,'pink'); src.loop = true;
         const f = ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1200; f.Q.value=2;
         const env = ctx.createGain(); env.gain.value = 0.4;
         src.connect(f).connect(env).connect(g); src.start();
@@ -545,7 +622,7 @@
         timers.push(iv); break;
       }
       case 'snow': {
-        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(3); src.loop = true;
+        const src = ctx.createBufferSource(); src.buffer = noiseBuffer(3,'brown'); src.loop = true;
         const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=400;
         const env = ctx.createGain(); env.gain.value = 0.08;
         src.connect(f).connect(env).connect(g); src.start();
@@ -662,7 +739,7 @@
       case 'lofi': {
         const tempo = 75; const spb = 60/tempo;
         // Vinyl crackle
-        const crackle = ctx.createBufferSource(); crackle.buffer = noiseBuffer(2); crackle.loop = true;
+        const crackle = ctx.createBufferSource(); crackle.buffer = noiseBuffer(2,'pink'); crackle.loop = true;
         const cf = ctx.createBiquadFilter(); cf.type='highpass'; cf.frequency.value=6000;
         const cenv = ctx.createGain(); cenv.gain.value = 0.04;
         crackle.connect(cf).connect(cenv).connect(g); crackle.start();
